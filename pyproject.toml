@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sf3000"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "Pillow>=10.0",
+    "requests>=2.31",
+    "pytest>=8.0",
+]
+
+[project.scripts]
+sf3000 = "sf3000.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

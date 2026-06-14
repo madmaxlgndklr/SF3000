@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+src/sf3000/__init__.py
+src/sf3000/__main__.py
+src/sf3000.egg-info/PKG-INFO
+src/sf3000.egg-info/SOURCES.txt
+src/sf3000.egg-info/dependency_links.txt
+src/sf3000.egg-info/entry_points.txt
+src/sf3000.egg-info/requires.txt
+src/sf3000.egg-info/top_level.txt

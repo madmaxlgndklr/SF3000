@@ -1,0 +1,2 @@
+[console_scripts]
+sf3000 = sf3000.cli:main
