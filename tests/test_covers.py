@@ -5,6 +5,7 @@ from unittest.mock import patch, MagicMock
 from PIL import Image
 from sf3000.covers import (
     _read_filelist_csv,
+    _clean_search_name,
     _resize_cover,
     plan_covers,
     apply_covers,
@@ -35,6 +36,46 @@ def test_read_filelist_csv_handles_bom(tmp_path):
 
 def test_read_filelist_csv_returns_empty_for_missing(tmp_path):
     assert _read_filelist_csv(tmp_path / "nope.csv") == []
+
+
+def test_read_filelist_csv_comma_in_filename(tmp_path):
+    # Filename contains comma (e.g. "(USA, Europe)") — not quoted in original CSV
+    csv = tmp_path / "filelist.csv"
+    csv.write_text(
+        "Pokemon - Emerald Version (USA, Europe).gba,Pokemon - Emerald Version,Pokemon - Emerald Version\n",
+        encoding="utf-8",
+    )
+    entries = _read_filelist_csv(csv)
+    assert entries[0] == (
+        "Pokemon - Emerald Version (USA, Europe).gba",
+        "Pokemon - Emerald Version",
+    )
+
+
+def test_read_filelist_csv_quoted_comma_in_display_name(tmp_path):
+    # Both filename and display name contain commas — quoted per CSV spec
+    csv = tmp_path / "filelist.csv"
+    csv.write_text(
+        '"Adventures of Batman & Robin, The (JUE).zip",'
+        '"Adventures of Batman & Robin, The (JUE)",'
+        '"Adventures of Batman & Robin"\n',
+        encoding="utf-8",
+    )
+    entries = _read_filelist_csv(csv)
+    assert entries[0] == (
+        "Adventures of Batman & Robin, The (JUE).zip",
+        "Adventures of Batman & Robin, The (JUE)",
+    )
+
+
+def test_clean_search_name_strips_region_codes():
+    assert _clean_search_name("Sonic the Hedgehog 2 (JUE)") == "Sonic the Hedgehog 2"
+    assert _clean_search_name("Double Dragon (UE) [!]") == "Double Dragon"
+    assert _clean_search_name("Pokemon - Emerald Version") == "Pokemon - Emerald Version"
+
+
+def test_clean_search_name_strips_japan_suffix():
+    assert _clean_search_name("kung fu, the (japan)") == "kung fu, the"
 
 
 def test_resize_cover_produces_exact_size():

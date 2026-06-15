@@ -1,3 +1,5 @@
+import csv as _csv
+import re
 import time
 from io import BytesIO
 from pathlib import Path
@@ -11,17 +13,33 @@ from .rollback import RollbackManager
 THEGAMESDB_API = "https://api.thegamesdb.net/v1"
 COVER_SIZE = (320, 240)
 
+_BRACKET_RE = re.compile(r"\s*[\(\[][^\)\]]*[\)\]]")
+
 
 def _read_filelist_csv(csv_path: Path) -> list[tuple[str, str]]:
     """Return list of (filename, display_name) from a filelist.csv."""
     if not csv_path.exists():
         return []
     entries: list[tuple[str, str]] = []
-    for line in csv_path.read_text(encoding="utf-8-sig", errors="replace").splitlines():
-        parts = line.strip().split(",", 2)
-        if len(parts) >= 2 and parts[0]:
-            entries.append((parts[0], parts[1]))
+    text = csv_path.read_text(encoding="utf-8-sig", errors="replace")
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        row = next(_csv.reader([line]))
+        if len(row) > 3:
+            # Unquoted comma inside filename — rsplit from right to find display name
+            parts = line.rsplit(",", 2)
+            if len(parts) >= 2 and parts[0].strip():
+                entries.append((parts[0].strip(), parts[1].strip()))
+        elif len(row) >= 2 and row[0].strip():
+            entries.append((row[0].strip(), row[1].strip()))
     return entries
+
+
+def _clean_search_name(name: str) -> str:
+    """Strip region codes and bracket tags for TheGamesDB search."""
+    return _BRACKET_RE.sub("", name).strip(" !.")
 
 
 def _resize_cover(image_bytes: bytes) -> bytes:
@@ -39,9 +57,12 @@ def _resize_cover(image_bytes: bytes) -> bytes:
 
 def _fetch_cover(api_key: str, game_name: str, platform_id: int) -> bytes | None:
     """Query TheGamesDB and return raw front boxart bytes, or None."""
+    search_name = _clean_search_name(game_name)
+    if not search_name:
+        return None
     params = {
         "apikey": api_key,
-        "name": game_name,
+        "name": search_name,
         "include": "boxart",
         "fields": "game_title",
         "filter[platform]": platform_id,
